@@ -1,18 +1,19 @@
-﻿import { Button, PressEvent } from "@heroui/button";
+import { Button } from "@heroui/button";
 import { Form } from "@heroui/form";
 import { Input } from "@heroui/input";
 import React from "react";
 import { validateEmail, validateEmailLength, validatePassword, validatePasswordLength, validatePasswordMatch } from "../utils/login";
-import axios from "axios";
+import { register, sendConfirmation } from "@/services/authApi";
 import { Alert } from "@heroui/alert";
 import { Link } from "@heroui/link";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from 'react-router-dom'
 import { useUserContext } from "@/contexts/UserContext";
-interface RegisterResponse {
-    message: string,
-    token?: string,
-}
+import AuthChessboardPattern from "@/components/AuthChessboardPattern";
+
+const authInputClassNames = {
+  input: "text-zinc-900 placeholder:text-zinc-500 dark:text-zinc-100 dark:placeholder:text-zinc-300",
+};
 
 const Register: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
@@ -30,7 +31,7 @@ const Register: React.FC = () => {
   const [alertTitle, setAlertTitle] = React.useState<string>("Could not create an account");
   const [alertColor, setAlertColor] = React.useState<"danger" | "success" | undefined>("danger");
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   var token = searchParams.get("token");
   const navigate = useNavigate();
   const hasRun = React.useRef(false);
@@ -44,10 +45,10 @@ const Register: React.FC = () => {
                 try {
                     const Email = localStorage.getItem("email");
                     const Pass = localStorage.getItem("pass");
-                    const response = await axios.post<RegisterResponse | undefined>("http://localhost:8000/authentication/register", {
+                    const response = await register({
                         email : Email,
                         password: Pass,
-                    })
+                    });
                     console.log("Gautas res: " + response);
 
                     if (response?.data?.token) {
@@ -82,7 +83,7 @@ const Register: React.FC = () => {
         localStorage.removeItem("pass");
     }, []);
 
-  const handleSubmit = async (e: PressEvent) => {
+  const handleSubmit = async () => {
 
     localStorage.removeItem("verification");
     localStorage.removeItem("email");
@@ -110,7 +111,7 @@ const Register: React.FC = () => {
     }
 
       try {
-          const response = await axios.post<RegisterResponse | undefined>("http://localhost:8000/authentication/sendConfirmation", {
+          const response = await sendConfirmation({
               email,
               password,
           });
@@ -146,7 +147,7 @@ const Register: React.FC = () => {
   return (
     <div className="relative flex flex-col w-full min-h-screen md:flex-row">
       <div className="items-center justify-center hidden h-full overflow-hidden bg-blue-500 md:w-2/5 md:flex ">
-        <Chessboard/>
+        <AuthChessboardPattern />
       </div>
 
       <div className="min-h-screen w-full md:w-3/5 bg-zinc-100 dark:bg-zinc-800 flex flex-col items-center justify-center md:shadow-[-10px_0_15px_rgba(0,0,0,0.2)] md:absolute md:right-0 md:z-10">
@@ -157,11 +158,12 @@ const Register: React.FC = () => {
           className="min-h-full w-[400px] flex flex-col items-center justify-center gap-y-8 py-20"
         >
           <Input
-            label="Email"
+            aria-label="Email"
+            placeholder="Enter your email"
+            classNames={authInputClassNames}
             size="md"
             radius="md"
             variant="bordered"
-            labelPlacement="inside"
             type="email"
             value={email}
             onValueChange={setEmail}
@@ -173,11 +175,12 @@ const Register: React.FC = () => {
             }
           />
           <Input
-            label="Password"
+            aria-label="Password"
+            placeholder="Enter your password"
+            classNames={authInputClassNames}
             size="md"
             radius="md"
             variant="bordered"
-            labelPlacement="inside"
             type={showPassword ? "text" : "password"}
             value={password}
             onValueChange={setPassword}
@@ -189,11 +192,12 @@ const Register: React.FC = () => {
             }
           />
           <Input
-            label="Confirm password"
+            aria-label="Confirm password"
+            placeholder="Confirm your password"
+            classNames={authInputClassNames}
             size="md"
             radius="md"
             variant="bordered"
-            labelPlacement="inside"
             type={showPassword ? "text" : "password"}
             value={passwordConfirm}
             onValueChange={setPasswordConfirm}
@@ -224,7 +228,7 @@ const Register: React.FC = () => {
             color="foreground"
             href="/login"
             >
-            <span className="text-black-200">Already have an account?</span>
+            <span className="text-zinc-700 dark:text-zinc-300">Already have an account?</span>
           </Link>
           {isErrorVisible &&
            <Alert
@@ -243,26 +247,5 @@ const Register: React.FC = () => {
   );
 }
 
-const Chessboard: React.FC = () => {
-  const squares = Array(64).fill(null);
-
-  return (
-    <div className="absolute top-0 left-0 grid h-full grid-cols-8 grid-rows-8">
-      {squares.map((square, index) => {
-        const isBlack = (Math.floor(index / 8) + index) % 2 === 1;
-        return (
-          <div
-            key={index}
-            className={`aspect-square ${
-              isBlack
-                ? "bg-stone-700 dark:bg-zinc-800"
-                : "bg-zinc-100 dark:bg-zinc-900"
-            }`}
-          />
-        );
-      })}
-    </div>
-  );
-};
-
 export default Register;
+

@@ -1,15 +1,14 @@
 import PasswordInput from "@/components/PasswordInput";
 import MainLayout from "@/layouts/main";
-import { EyeFilledIcon, EyeSlashFilledIcon } from "@/static/PasswordEye";
 import { validatePassword, validatePasswordLength, validatePasswordMatch } from "@/utils/login";
-import { addToast, Button, Input, ToastProvider} from "@heroui/react";
+import { addToast, Button, ToastProvider} from "@heroui/react";
 import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import {Image} from "@heroui/image";
 import { useTheme } from "@heroui/use-theme";
 import darkM from '@/static/darkMode.jpg';
 import lightM from '@/static/lightMode.jpg';
+import { changePassword } from "@/services/authApi";
 
 
 const Settings: React.FC = () => {
@@ -82,10 +81,6 @@ const Settings: React.FC = () => {
 
 export default Settings;
  
-interface Response{
-  message:string;
-}
-
 const PasswordChange: React.FC = () => {
 
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -107,7 +102,7 @@ const PasswordChange: React.FC = () => {
   };
 
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async () => {
     setIsLoading(true);
 
     if (!currentPassword || !newPassword || !newPasswordConfirm) {
@@ -137,18 +132,10 @@ const PasswordChange: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem("JWT");
-      const response = await axios.patch<Response>("http://localhost:8000/authentication/changepassword",
-          {
-            oldPassword:currentPassword,
-            newPassword:newPassword,
-          },
-          {
-            headers: {
-              Authorization: 'Bearer ' + token,
-            },
-          }
-      );
+      const response = await changePassword({
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+      });
 
       createError("Success","success",response.data.message);
       setIsLoading(false);
@@ -205,7 +192,7 @@ const PasswordChange: React.FC = () => {
 
 
 const ThemeChange: React.FC = () => {
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');

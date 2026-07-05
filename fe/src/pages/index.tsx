@@ -1,15 +1,8 @@
 import MainLayout from "@/layouts/main";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { Button, PressEvent } from "@heroui/button";
+import { Button } from "@heroui/button";
 import { useNavigate } from "react-router-dom";
-
-
-
-interface ProfileResponse {
-  message: string,
-  profile?: any,
-}
+import { getMyProfile } from "@/services/profileApi";
 
 
 const UserProfile: React.FC = () => {
@@ -26,32 +19,29 @@ const UserProfile: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => setShowButton(true), 1000);
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem("JWT");
       try {
-        const response = await axios.get<ProfileResponse | undefined>("http://localhost:8000/profiles/myprofile", {
-          headers: {
-          Authorization: 'Bearer ' + token,
-          }
-      });
-      const profileData = response?.data?.profile
-      if (profileData) {
-        setNickname(profileData.nickname);
-    }
-  } catch (error) {
-    console.error("Error fetching profile data:", error);
-  }
-};
+        const response = await getMyProfile();
+        const profileData = response?.data?.profile;
 
-fetchUserProfile();
+        if (profileData) {
+          setNickname(profileData.nickname);
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+      }
+    };
+
+    void fetchUserProfile();
+    return () => clearTimeout(timer);
   }, []);
   
   return (
     <MainLayout>
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-        <div className="text-black-500 text-4xl font-bold">
+        <div className="rounded-2xl bg-zinc-950/85 px-6 py-3 text-4xl font-extrabold text-white shadow-2xl ring-1 ring-white/10 backdrop-blur-sm">
           Sveikas atvykęs,
         </div>
-        <div className="opacity-0 animate-fade-in text-emerald-500 text-6xl font-bold"> 
+        <div className={`text-emerald-500 text-6xl font-bold transition-opacity duration-700 ${showButton ? "opacity-100" : "opacity-0"}`}> 
           {nickname}
         </div>
         
@@ -62,8 +52,7 @@ fetchUserProfile();
       <Button
         size="lg"
         radius="lg"
-        className="opacity-0 animate-fade-in w-[90%] h-[70px] font-semibold text-white shadow-lg bg-gradient-to-tr from-stone-700 to-green-500"
-        style={{ animationDelay: '1000ms' }}
+        className={`w-[90%] h-[70px] font-semibold text-white shadow-lg bg-gradient-to-tr from-stone-700 to-green-500 transition-all duration-700 ${showButton ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}
         onPress={() => navigate(path)}
       >
         {label}

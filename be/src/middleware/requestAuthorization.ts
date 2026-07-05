@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { authConfig } from "../config.js";
+import { AppError } from "../errors/AppError.js";
 
 export interface AuthRequest extends Request {
     authorizedUser?: any;
@@ -9,18 +11,18 @@ const validateJWT = (req: AuthRequest, res: Response, next: NextFunction): void 
     const authHeader = req.headers.authorization;
   
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        res.status(401).json({ message: "A Bearer token must be provided" });
+        next(new AppError(401, "A Bearer token must be provided", "MISSING_BEARER_TOKEN"));
         return;
     }
   
     const token = authHeader.split(" ")[1];
   
     try {
-        const decoded = jwt.verify(token, "7kP$mN9xQz!vR2tL&jW5bY8sF3hA*eDg");
+        const decoded = jwt.verify(token, authConfig.jwtSecret);
         req.authorizedUser = decoded;
         next();
     } catch (error) {
-        res.status(403).json({ message: "Forbidden: Invalid token" });
+        next(new AppError(403, "Forbidden: Invalid token", "INVALID_TOKEN"));
         return;
     }
   };

@@ -14,39 +14,28 @@ import { ProfileLogo } from "../components/icons";
 import MainLayout from "../layouts/main";
 import "../styles/globals.css";
 import { Avatar } from "@heroui/avatar";
+import { getMatchHistory, type MatchHistoryEntry } from "@/services/matchApi";
+import { getProfileById } from "@/services/profileApi";
 
 import { useSearchParams } from 'react-router-dom'
-import { match } from "assert";
-import { count } from "console";
-
-interface ProfileResponse {
-    message: string,
-    profile?: any,
-}
 
 const OtherProfile: React.FC = () => {
-    const [searchParams, setSearchParams] = useSearchParams();
+    const [searchParams] = useSearchParams();
     var id = searchParams.get("id")
     const [profileFound, setProfileFound] = React.useState<boolean>(false);
     const [nickname, setNickname] = React.useState<string>("none");
-    const [country, setCountry] = React.useState<string>("Belgium");
     const [rating, setRating] = React.useState<number>(0);
-    const [puzzles, setPuzzles] = React.useState<number>(0);
     const [flag, setFlag] = React.useState<string>("");
-    const [result, setResult] = React.useState<Object>([0,0,0]);
+    const [result, setResult] = React.useState<number[]>([0, 0, 0]);
     const [avatar, setAvatar] = React.useState<string>("null");
-    const [matchHistory, setMatchHistory] = React.useState<Object>([]);
+    const [matchHistory, setMatchHistory] = React.useState<MatchHistoryEntry[]>([]);
 
     React.useEffect(() => {
 
         id == null ? id = "" : ""
         async function loadProfile() {
             try {
-                const response = await axios.get<ProfileResponse | undefined>("http://localhost:8000/profiles/profile", {
-                    params: {
-                        id:id,
-                    }
-                });
+                const response = await getProfileById(id ?? "");
 
                 if (response?.data?.profile) {
                     setProfileFound(true);
@@ -54,11 +43,9 @@ const OtherProfile: React.FC = () => {
                     console.log("Gautas profilis: " + response?.data?.profile?.nickname);
                     console.log("Gautas profilio id: " + response?.data?.profile?.id);
                     setNickname(response?.data?.profile?.nickname)
-                    const countryName = response?.data?.profile?.country;
-                    setCountry(countryName);
+                    const countryName = response?.data?.profile?.country || "Belgium";
                     setAvatar(response?.data?.profile?.avatar);
                     response?.data?.profile?.rating ? setRating(response?.data?.profile?.rating) : setRating(0);
-                    setPuzzles(0);
 
                     try {
                         const response = await axios.get<any | undefined>(`https://restcountries.com/v3.1/name/${countryName}`);
@@ -85,15 +72,7 @@ const OtherProfile: React.FC = () => {
             }
 
             try {
-                const token = localStorage.getItem("JWT");
-                const responseMatchHistory = await axios.get<Response | undefined>("http://localhost:8000/api/matchhistory", {
-                    headers: {
-                        Authorization: 'Bearer ' + token,
-                    },
-                    params: {
-                        profileId: id
-                    }
-                });
+                const responseMatchHistory = await getMatchHistory(id ?? undefined);
 
                 if (responseMatchHistory.data) {
                     console.log("Match History data: " + responseMatchHistory.data[0].date);

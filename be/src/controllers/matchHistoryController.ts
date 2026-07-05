@@ -3,9 +3,10 @@ import { DB } from "../data-source.js";
 import { Profile } from "../entity/Profile.js";
 import fetchMatchHistory from "../services/matchHistory.js"; // Assuming this is your service to fetch match history
 import { AuthRequest } from "../middleware/requestAuthorization.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AppError } from "../errors/AppError.js";
 
-export const getMatchHistory = async (req: Request, res: Response): Promise<void> => {
-    try {
+export const getMatchHistory = asyncHandler(async (req: Request, res: Response): Promise<void> => {
         const userEmail = (req as AuthRequest).authorizedUser?.email;
 
         const profileId: number = Number(req.query.profileId);
@@ -18,8 +19,7 @@ export const getMatchHistory = async (req: Request, res: Response): Promise<void
             });
 
             if (!profile || !profile.user) {
-                res.status(404).json({ message: "Profile not found" });
-                return; 
+                throw new AppError(404, "Profile not found", "PROFILE_NOT_FOUND");
             }
 
             userID = profile.user.id;
@@ -28,13 +28,8 @@ export const getMatchHistory = async (req: Request, res: Response): Promise<void
         const matchHistory = await fetchMatchHistory(userEmail, userID);
 
         if (!matchHistory) {
-            res.status(404).json({ message: "No matches found" });
-            return;
+            throw new AppError(404, "No matches found", "MATCH_HISTORY_NOT_FOUND");
         }
 
         res.status(200).json(matchHistory);
-    } catch (error) {
-        console.error("Error fetching match history:", error);
-        res.status(500).json({ message: "An error occurred while fetching match history" });
-    }
-};
+});

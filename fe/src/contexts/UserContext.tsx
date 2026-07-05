@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import axios from "axios";
+import { getMyAvatar } from "@/services/profileApi";
 
 type UserContextType = {
     avatarUrl: string;
@@ -14,12 +14,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchAvatar = async () => {
         try {
-            const token = localStorage.getItem("JWT");
-            const response = await axios.get<any | undefined>("http://localhost:8000/profiles/myavatar", {
-                headers: {
-                    Authorization: 'Bearer ' + token,
-                }
-            });
+            const response = await getMyAvatar();
             if (response.data.avatar)
                 setAvatarUrl(response.data.avatar);
 

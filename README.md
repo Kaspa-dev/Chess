@@ -40,7 +40,20 @@ Steps:
     cd be
 7. Then, in both terminals, install dependencies:
     npm install
-8. After installation, start both frontend and backend:
+8. In the frontend folder, create a `.env` file and add the required environment value:
+    VITE_API_BASE_URL=http://localhost:8000
+9. In the backend folder, create a `.env` file and add the required environment values:
+    JWT_SECRET=replace-with-a-long-random-secret
+    MAIL_USER=your-gmail-address@gmail.com
+    MAIL_PASS=your-gmail-app-password
+    FRONTEND_BASE_URL=http://localhost:5173
+10. These environment values are required before running the project:
+    `VITE_API_BASE_URL` is the frontend base URL for backend API and socket requests.
+    `JWT_SECRET` is used to sign and verify login and registration tokens.
+    `MAIL_USER` is the Gmail address that sends account confirmation emails.
+    `MAIL_PASS` is the Gmail app password for that mailbox.
+    `FRONTEND_BASE_URL` is the browser base URL used in confirmation email links and socket CORS.
+11. After installation and environment setup, start both frontend and backend:
     npm run dev
 ------------------------------------------------------------------------------------------------------------
 Contributors:
