@@ -19,6 +19,7 @@ import PH from "./pages/Settings";
 import PvP from "./pages/PlayerAgainstPlayer";
 import { UserProvider } from "./contexts/UserContext";
 import AboutPage from "./pages/about";
+import NotFoundPage from "./pages/NotFound";
 
 function App() {
     const { theme } = useTheme();
@@ -53,6 +54,7 @@ function App() {
                     <Route element={<ProtectedRoute><Settings /></ProtectedRoute>} path="/settings" />
                     <Route element={<ProtectedRoute><Password /></ProtectedRoute>} path="/settings/password" />
                     <Route element={<ProtectedRoute><PH /></ProtectedRoute>} path="/settings/themes" />
+                    <Route element={<NotFoundPage />} path="*" />
             </Routes>
         </UserProvider>
     );

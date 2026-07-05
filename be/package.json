@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "node --loader ts-node/esm src/index.ts",
+    "test": "node --loader ts-node/esm --test src/*.test.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
@@ -31,6 +32,7 @@
     "chess.js": "^1.2.0",
     "class-validator": "^0.14.1",
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.2",
