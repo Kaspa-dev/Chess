@@ -46,6 +46,11 @@ interface OpponentDisconnectedPayload {
   message: string;
 }
 
+interface GameOverPayload {
+  message: string;
+  winnerEmail?: string;
+}
+
 const defaultOpponent: OpponentSummary = {
   nickname: "Waiting for opponent...",
   avatar: "null",
@@ -61,14 +66,20 @@ export function useMultiplayerSession() {
   const socketRef = useRef<Socket | null>(null);
   const colorRef = useRef<string | null>(null);
   const shareResetTimeoutRef = useRef<number | null>(null);
+  const opponentProfileRequestRoomRef = useRef<string | null>(null);
+  const opponentProfileReceivedRef = useRef(false);
   const {
     game,
     whiteWins,
     blackWins,
     stalemate,
+    moveHistory,
+    turnLabel,
+    capturedPieces,
     makeMove,
     resetGame,
     setGameFromFen,
+    setGameOutcome,
   } = useChessGameState();
   const [gameStarted, setGameStarted] = useState(false);
   const [status, setStatus] = useState<string>(initialRoom ? "Joining game..." : "Connecting...");
@@ -160,11 +171,12 @@ export function useMultiplayerSession() {
         return;
       }
 
-      let profileReceived = false;
+      opponentProfileRequestRoomRef.current = data.room;
+      opponentProfileReceivedRef.current = false;
 
       const requestOpponentProfile = (attempts = 0) => {
         if (attempts >= 3) {
-          if (!profileReceived) {
+          if (!opponentProfileReceivedRef.current && opponentProfileRequestRoomRef.current === data.room) {
             setStatus("Failed to get opponent data");
           }
           return;
@@ -174,20 +186,12 @@ export function useMultiplayerSession() {
         newSocket.emit("getOpponentProfile", { room: data.room });
 
         window.setTimeout(() => {
-          if (!profileReceived) {
+          if (!opponentProfileReceivedRef.current && opponentProfileRequestRoomRef.current === data.room) {
             requestOpponentProfile(attempts + 1);
           }
         }, 1500);
       };
 
-      const onOpponentProfile = (profileData: OpponentProfilePayload) => {
-        profileReceived = true;
-        console.log("Opponent profile received:", profileData);
-        updateOpponent(profileData);
-        newSocket.off("opponentProfile", onOpponentProfile);
-      };
-
-      newSocket.on("opponentProfile", onOpponentProfile);
       requestOpponentProfile();
     });
 
@@ -203,6 +207,10 @@ export function useMultiplayerSession() {
 
     newSocket.on("opponentProfile", (data: OpponentProfilePayload) => {
       console.log("Opponent profile received:", data);
+      if (opponentProfileRequestRoomRef.current) {
+        opponentProfileReceivedRef.current = true;
+        opponentProfileRequestRoomRef.current = null;
+      }
       updateOpponent(data);
     });
 
@@ -210,6 +218,31 @@ export function useMultiplayerSession() {
       console.log(`[${newSocket.id}] Game reset:`, data);
       setGameFromFen(data.fen);
       setStatus(`Playing as ${colorRef.current}`);
+    });
+
+    newSocket.on("gameOver", (data: GameOverPayload) => {
+      console.log("Game over:", data);
+      const normalizedMessage = data.message.trim().toLowerCase();
+
+      if (normalizedMessage === "white wins!") {
+        setGameOutcome({ whiteWins: true, blackWins: false, stalemate: false });
+      } else if (normalizedMessage === "black wins!") {
+        setGameOutcome({ whiteWins: false, blackWins: true, stalemate: false });
+      } else {
+        setGameOutcome({ whiteWins: false, blackWins: false, stalemate: true });
+      }
+
+      setStatus(data.message);
+      setColor(null);
+      setGameRoom(null);
+      setShareableLink("");
+      setGameStarted(false);
+      opponentProfileRequestRoomRef.current = null;
+      opponentProfileReceivedRef.current = false;
+
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("room");
+      window.history.pushState({}, "", newUrl.toString());
     });
 
     newSocket.on("opponentDisconnected", (data: OpponentDisconnectedPayload) => {
@@ -220,6 +253,8 @@ export function useMultiplayerSession() {
       resetGame();
       setShareableLink("");
       setGameStarted(false);
+      opponentProfileRequestRoomRef.current = null;
+      opponentProfileReceivedRef.current = false;
       setOpponent({
         ...defaultOpponent,
         nickname: "Opponent left the game",
@@ -322,6 +357,9 @@ export function useMultiplayerSession() {
     whiteWins,
     blackWins,
     stalemate,
+    moveHistory,
+    turnLabel,
+    capturedPieces,
     opponent,
     onDrop,
     copyLinkToClipboard,

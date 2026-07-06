@@ -3,9 +3,11 @@ import { Button } from "@heroui/button";
 import { useNavigate } from "react-router-dom";
 
 import { GameBoardShell } from "@/components/game/GameBoardShell";
+import { GameSidebar } from "@/components/game/GameSidebar";
 import { GameResultBanner } from "@/components/game/GameResultBanner";
 import { InviteLinkPanel } from "@/components/game/InviteLinkPanel";
 import { PlayerSummaryCard } from "@/components/game/PlayerSummaryCard";
+import { useChessboardHighlights } from "@/hooks/game/useChessboardHighlights";
 import { useMultiplayerSession } from "@/hooks/game/useMultiplayerSession";
 import { useProfileSummary } from "@/hooks/game/useProfileSummary";
 
@@ -20,10 +22,17 @@ const ChessGame = () => {
         whiteWins,
         blackWins,
         stalemate,
+        moveHistory,
+        turnLabel,
+        capturedPieces,
         opponent,
         onDrop,
         copyLinkToClipboard,
     } = useMultiplayerSession();
+    const boardHighlights = useChessboardHighlights({
+        game,
+        onMoveAttempt: onDrop,
+    });
 
     return (
         <GameBoardShell
@@ -64,7 +73,17 @@ const ChessGame = () => {
                 <Chessboard
                     position={game.fen()}
                     onPieceDrop={onDrop}
+                    onPieceDragBegin={boardHighlights.onPieceDragBegin}
+                    onSquareClick={boardHighlights.onSquareClick}
+                    customSquareStyles={boardHighlights.customSquareStyles}
                     boardOrientation={color === "Black" ? "black" : "white"}
+                />
+            }
+            sidebar={
+                <GameSidebar
+                    turnLabel={turnLabel}
+                    moveHistory={moveHistory}
+                    capturedPieces={capturedPieces}
                 />
             }
             actions={

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Outlet } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -19,6 +19,14 @@ vi.mock("./contexts/UserContext", () => ({
     getAvatarUrl: vi.fn(),
     resetAvatar: vi.fn(),
   }),
+}));
+
+vi.mock("./components/ProtectedRoute", () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("./components/PublicRoute", () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock("./pages/Singledevice", () => ({
@@ -57,8 +65,21 @@ vi.mock("./pages/PlayerAgainstAi", () => ({
   default: () => <div>Player Against AI</div>,
 }));
 
-vi.mock("./pages/Settings", () => ({
-  default: () => <div>Settings</div>,
+vi.mock("./pages/settings/SettingsLayout", () => ({
+  default: () => (
+    <div>
+      Settings Layout
+      <Outlet />
+    </div>
+  ),
+}));
+
+vi.mock("./pages/settings/PasswordSettingsPage", () => ({
+  default: () => <div>Password Settings</div>,
+}));
+
+vi.mock("./pages/settings/ThemeSettingsPage", () => ({
+  default: () => <div>Theme Settings</div>,
 }));
 
 vi.mock("./pages/PlayerAgainstPlayer", () => ({
@@ -74,6 +95,30 @@ vi.mock("@/pages/index", () => ({
 }));
 
 describe("App", () => {
+  it("renders the password settings subpage for the base settings route", () => {
+    render(
+      <MemoryRouter initialEntries={["/settings"]}>
+        <Provider>
+          <App />
+        </Provider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Password Settings")).toBeInTheDocument();
+  });
+
+  it("renders the theme settings subpage for the theme route", () => {
+    render(
+      <MemoryRouter initialEntries={["/settings/themes"]}>
+        <Provider>
+          <App />
+        </Provider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Theme Settings")).toBeInTheDocument();
+  });
+
   it("renders a not found page for unknown routes", () => {
     render(
       <MemoryRouter initialEntries={["/missing-route"]}>

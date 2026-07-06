@@ -50,7 +50,7 @@ const registerChessSocketHandlers = (io: Server): void => {
     });
 
     socket.on("disconnect", () => {
-      handleDisconnect(io, socket);
+      void handleDisconnect(io, socket);
     });
   });
 };

@@ -10,24 +10,17 @@ import nodemailer  from "nodemailer";
 import { authConfig, frontendConfig, getMailConfig } from "../config.js";
 import { AppError } from "../errors/AppError.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import {
+  parseAuthCredentials,
+  parsePasswordChangePayload,
+  parseProfileEditPayload,
+} from "../validation/requestPayloads.js";
 
 const userRepository = DB.getRepository(User);
 const profileRepository = DB.getRepository(Profile);
 
 export const sendConfirmation: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        throw new AppError(400, "Email and password are required", "VALIDATION_ERROR");
-    }
-
-    if(email.length < 3 || email.length > 254) {
-      throw new AppError(400, "Email must be between 3 and 254 characters long", "VALIDATION_ERROR");
-    }
-
-    if(password.length < 8 || password.length > 64) {
-      throw new AppError(400, "Password must be between 8 and 64 characters long", "VALIDATION_ERROR");
-    }
+    const { email, password } = parseAuthCredentials(req.body);
 
     const existingUser = await userRepository.findOne({ where: { email } });
     if (existingUser) {
@@ -66,14 +59,10 @@ export const sendConfirmation: RequestHandler = asyncHandler(async (req: Request
 });
 
 export const register: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password } = parseAuthCredentials(req.body);
 
     console.log("email: " + email);
     console.log("password: " + password);
-
-  if (!email || !password) {
-    throw new AppError(400, "Email and password are required", "VALIDATION_ERROR");
-  }
 
   const existingUser = await userRepository.findOne({ where: { email } });
   if (existingUser) {
@@ -97,11 +86,7 @@ export const register: RequestHandler = asyncHandler(async (req: Request, res: R
 });
 
 export const login: RequestHandler = asyncHandler(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        throw new AppError(400, "Email and password are required", "VALIDATION_ERROR");
-    }
+    const { email, password } = parseAuthCredentials(req.body);
 
     const user = await userRepository.findOne({ where: { email } });
     if (!user) {
@@ -126,15 +111,7 @@ export const editProfile: RequestHandler = asyncHandler(async (req: AuthRequest,
     throw new AppError(500, "Something went wrong. JWT is not assigned to a user.", "JWT_USER_MISSING");
   }
 
-  const { newUserName, newCountry } = req.body;
-
-  if (!newUserName || !newCountry) {
-    throw new AppError(400, "New username or country are required.", "VALIDATION_ERROR");
-  }
-
-  if (newUserName && (newUserName.length < 3 || newUserName.length > 64)) {
-    throw new AppError(400, "The new username must be between 8 and 64 characters long", "VALIDATION_ERROR");
-  }
+  const { newUserName, newCountry } = parseProfileEditPayload(req.body);
 
   const user = await userRepository.findOne({
     where: { email },
@@ -169,14 +146,7 @@ export const changePassword: RequestHandler = asyncHandler(async (req: AuthReque
     throw new AppError(500, "Something went wrong. JWT is not assigned to an user.", "JWT_USER_MISSING");
   }
 
-  const { oldPassword, newPassword }: { oldPassword: string, newPassword: string}= req.body;
-  if ( !oldPassword || !newPassword) {
-    throw new AppError(400, "Old and new password are required.", "VALIDATION_ERROR");
-  }
-
-  if ( newPassword.length < 8 || newPassword.length > 64) {
-    throw new AppError(400, "The new password must be between 8 and 64 characters long", "VALIDATION_ERROR");
-  }
+  const { oldPassword, newPassword } = parsePasswordChangePayload(req.body);
 
   const user = await userRepository.findOne({ where: { email } });
   if (!user) {

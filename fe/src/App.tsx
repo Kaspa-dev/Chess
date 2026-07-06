@@ -1,7 +1,7 @@
 import { useTheme } from '@heroui/use-theme';
 import { useEffect } from 'react';
 import SingleDevice from "./pages/Singledevice";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import IndexPage from "@/pages/index";
@@ -13,9 +13,9 @@ import { Logout } from "./pages/Logout";
 import EditProfile from "./pages/EditProfile";
 import OtherProfile from "./pages/OtherProfile";
 import AgainstAi from "./pages/PlayerAgainstAi";
-import Settings from "./pages/Settings";
-import Password from "./pages/Settings";
-import PH from "./pages/Settings";
+import SettingsLayout from "./pages/settings/SettingsLayout";
+import PasswordSettingsPage from "./pages/settings/PasswordSettingsPage";
+import ThemeSettingsPage from "./pages/settings/ThemeSettingsPage";
 import PvP from "./pages/PlayerAgainstPlayer";
 import { UserProvider } from "./contexts/UserContext";
 import AboutPage from "./pages/about";
@@ -51,9 +51,14 @@ function App() {
                     <Route element={<ProtectedRoute><SingleDevice /></ProtectedRoute>} path="/singledevice" />
                     <Route element={<ProtectedRoute><AgainstAi /></ProtectedRoute>} path="/playerAgainstAi" />
                     <Route element={<ProtectedRoute><EditProfile /></ProtectedRoute>} path="/editprofile" />
-                    <Route element={<ProtectedRoute><Settings /></ProtectedRoute>} path="/settings" />
-                    <Route element={<ProtectedRoute><Password /></ProtectedRoute>} path="/settings/password" />
-                    <Route element={<ProtectedRoute><PH /></ProtectedRoute>} path="/settings/themes" />
+                    <Route
+                      element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}
+                      path="/settings"
+                    >
+                      <Route element={<Navigate replace to="password" />} index />
+                      <Route element={<PasswordSettingsPage />} path="password" />
+                      <Route element={<ThemeSettingsPage />} path="themes" />
+                    </Route>
                     <Route element={<NotFoundPage />} path="*" />
             </Routes>
         </UserProvider>
