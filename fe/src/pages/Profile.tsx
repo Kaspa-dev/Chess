@@ -17,17 +17,46 @@ import "../styles/globals.css";
 import { Avatar } from "@heroui/avatar";
 import { getMatchHistory, type MatchHistoryEntry } from "@/services/matchApi";
 import { getMyProfile } from "@/services/profileApi";
+import {
+    buildProfileHeaderModel,
+    buildProfileResultsModel,
+    DEFAULT_PROFILE_HEADER_MODEL,
+    getFlagUrlFromCountryLookup,
+    type CountryLookupResponse,
+    type ProfileResultsModel,
+} from "./profileViewModel";
+
+interface ErrorResponse {
+    message?: string;
+}
+
+interface ErrorWithResponse {
+    response?: {
+        data?: ErrorResponse;
+    };
+}
+
+function hasErrorResponse(error: unknown): error is ErrorWithResponse {
+    return typeof error === "object" && error !== null && "response" in error;
+}
 
 const Profile: React.FC = () => {
     const navigate = useNavigate();
     const [isLoading] = React.useState<boolean>(false);
 
-    const [nickname, setNickname] = React.useState<string>("");
-    const [avatar, setAvatar] = React.useState<string>("null");
-    const [rating, setRating] = React.useState<number>(1000);
+    const [profile, setProfile] = React.useState(DEFAULT_PROFILE_HEADER_MODEL);
     const [flag, setFlag] = React.useState<string>("");
-    const [result, setResult] = React.useState<number[]>([0, 0, 0]);
+    const [result, setResult] = React.useState<ProfileResultsModel>([0, 0, 0]);
     const [matchHistory, setMatchHistory] = React.useState<MatchHistoryEntry[]>([]);
+
+    function logAxiosError(error: unknown) {
+        if (hasErrorResponse(error)) {
+            console.log(error.response?.data?.message);
+            return;
+        }
+
+        console.log(error);
+    }
 
     React.useEffect(() => {
         async function loadProfile() {
@@ -37,30 +66,27 @@ const Profile: React.FC = () => {
                 if (response?.data?.profile) {
                     console.log("Gautas res: " + response?.data?.message);
                     console.log("Gautas profilis: " + response?.data?.profile);
-                    const countryName = response.data.profile.country;
-                    console.log("Gauta šalis " + countryName)
-                    setNickname(response.data.profile.nickname);
-                    const normalizedCountry = countryName || "Belgium";
-                    setAvatar(response.data.profile.avatar);
-                    setRating(response.data.profile.rating || 0);
-                    
+                    const profileModel = buildProfileHeaderModel(response.data.profile);
+                    console.log("Gauta šalis " + profileModel.countryName);
+                    setProfile(profileModel);
 
-                    if (normalizedCountry) {
+                    if (profileModel.countryName) {
                         try {
-                            const response = await axios.get<any | undefined>(`https://restcountries.com/v3.1/name/${normalizedCountry}`);
+                            const countryResponse = await axios.get<CountryLookupResponse>(
+                                `https://restcountries.com/v3.1/name/${encodeURIComponent(profileModel.countryName)}`
+                            );
+                            const flagUrl = getFlagUrlFromCountryLookup(countryResponse.data);
 
-                            if (response.data) {
-                                console.log(response)
-                                console.log("CountryName: " + normalizedCountry);
-                                const code = response.data[0].cca2.toUpperCase();
-                                console.log("Pilnas kodas hopefully: " + code);
-                                setFlag(`https://flagsapi.com/${code}/shiny/48.png`);
+                            if (flagUrl) {
+                                console.log(countryResponse);
+                                console.log("CountryName: " + profileModel.countryName);
+                                setFlag(flagUrl);
                             } else {
-                                console.log("Ivyko klaida dėl vėliavos gavimo: " + response);
+                                console.log("Ivyko klaida dėl vėliavos gavimo: " + countryResponse);
                             }
                         }
-                        catch (error: any) {
-                            console.log(error.response?.data?.message);
+                        catch (error: unknown) {
+                            logAxiosError(error);
                         }
                     }
 
@@ -68,30 +94,21 @@ const Profile: React.FC = () => {
                     console.log("Ivyko klaida dėl profilio: " + response?.data?.message);
                 }
             }
-            catch (error: any) {
-                console.log(error.response?.data?.message);
+            catch (error: unknown) {
+                logAxiosError(error);
             }
 
             try {
                 const responseMatchHistory = await getMatchHistory();
 
                 if (responseMatchHistory.data) {
-                    console.log("Match History data: " + responseMatchHistory.data[0].date);
                     const matches = responseMatchHistory.data;
                     setMatchHistory(matches);
-                    console.log("Matches data: " + matches[0].date);
-                    var wins = 0;
-                    var losses = 0;
-                    var draws = 0;
-                    for (var i = 0; i < matches.length; i++) {
-                        matches[i].status === "WIN" ? wins++ : matches[i].status === "LOSS" ? losses++ : draws++;
-                    }
-                    console.log("Wins:" + wins + " losses:" + losses + " draws:" + draws);
-                    setResult([wins, losses, draws]);
+                    setResult(buildProfileResultsModel(matches));
                 }
             }
-            catch (error: any) {
-                console.log(error.responseMatchHistory?.data?.message);
+            catch (error: unknown) {
+                logAxiosError(error);
             }
 
         }
@@ -102,15 +119,15 @@ const Profile: React.FC = () => {
 <MainLayout>
 <section className="flex flex-col md:flex-row flex-wrap justify-center items-start gap-6 p-4 w-full">
   {/* Profile Box */}
-  <div className="w-full max-w-[900px] flex flex-col md:flex-row bg-gradient-to-r from-zinc-100 dark:from-zinc-800 to-zinc-200 dark:to-zinc-900 rounded-lg border-4 border-zinc-300 dark:border-black">
+    <div className="w-full max-w-[900px] flex flex-col md:flex-row bg-gradient-to-r from-zinc-100 dark:from-zinc-800 to-zinc-200 dark:to-zinc-900 rounded-lg border-4 border-zinc-300 dark:border-black">
     {/* Avatar */}
     <div className="w-full md:w-[300px] flex justify-center items-center p-4">
-      {avatar === "null" ? (
+      {profile.avatar === "null" ? (
         <ProfileLogo className="w-[200px] h-[200px]" />
       ) : (
         <Avatar
           className="w-[200px] h-[200px] rounded-none"
-          src={avatar}
+          src={profile.avatar}
           alt="Avatar"
           showFallback
           isBordered
@@ -123,7 +140,7 @@ const Profile: React.FC = () => {
       {/* Nickname + Edit */}
       <div className="flex flex-wrap items-center justify-between p-2">
         <div className="flex items-center space-x-2">
-          <h1 className="text-emerald-500 font-bold text-4xl">{nickname}</h1>
+          <h1 className="text-emerald-500 font-bold text-4xl">{profile.nickname}</h1>
           {flag && <img className="w-[40px] h-[40px]" src={flag} alt="flag" />}
         </div>
         <Button
@@ -140,7 +157,7 @@ const Profile: React.FC = () => {
       {/* Rating */}
       <div className="p-2 flex flex-row space-x-2">
         <h1 className="text-emerald-500 font-bold text-xl">Rating:</h1>
-        <p className="text-gray-700 dark:text-white text-xl">{rating}</p>
+        <p className="text-gray-700 dark:text-white text-xl">{profile.rating}</p>
       </div>
 
       {/* Win/Loss/Draw */}

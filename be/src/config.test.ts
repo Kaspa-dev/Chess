@@ -88,6 +88,66 @@ test("env config trims frontend base URL once so callers can append paths safely
   }
 });
 
+test("env config falls back to the bundled stockfish path when no override is set", async () => {
+  const previous = {
+    DOTENV_CONFIG_PATH: process.env.DOTENV_CONFIG_PATH,
+    JWT_SECRET: process.env.JWT_SECRET,
+    MAIL_USER: process.env.MAIL_USER,
+    MAIL_PASS: process.env.MAIL_PASS,
+    FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
+    STOCKFISH_PATH: process.env.STOCKFISH_PATH,
+  };
+
+  process.env.DOTENV_CONFIG_PATH = ".env.test-does-not-exist";
+  process.env.JWT_SECRET = "test-secret";
+  process.env.MAIL_USER = "mailer@example.com";
+  process.env.MAIL_PASS = "app-password";
+  process.env.FRONTEND_BASE_URL = "http://localhost:5173/";
+  delete process.env.STOCKFISH_PATH;
+
+  try {
+    const { stockfishConfig } = await import(`./config.js?stockfish-default=${Date.now()}`);
+    assert.match(stockfishConfig.enginePath, /[\\/]engines[\\/]stockfish-windows-x86-64-avx2\.exe$/);
+  } finally {
+    restoreEnv("DOTENV_CONFIG_PATH", previous.DOTENV_CONFIG_PATH);
+    restoreEnv("JWT_SECRET", previous.JWT_SECRET);
+    restoreEnv("MAIL_USER", previous.MAIL_USER);
+    restoreEnv("MAIL_PASS", previous.MAIL_PASS);
+    restoreEnv("FRONTEND_BASE_URL", previous.FRONTEND_BASE_URL);
+    restoreEnv("STOCKFISH_PATH", previous.STOCKFISH_PATH);
+  }
+});
+
+test("env config uses a stockfish path override when provided", async () => {
+  const previous = {
+    DOTENV_CONFIG_PATH: process.env.DOTENV_CONFIG_PATH,
+    JWT_SECRET: process.env.JWT_SECRET,
+    MAIL_USER: process.env.MAIL_USER,
+    MAIL_PASS: process.env.MAIL_PASS,
+    FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
+    STOCKFISH_PATH: process.env.STOCKFISH_PATH,
+  };
+
+  process.env.DOTENV_CONFIG_PATH = ".env.test-does-not-exist";
+  process.env.JWT_SECRET = "test-secret";
+  process.env.MAIL_USER = "mailer@example.com";
+  process.env.MAIL_PASS = "app-password";
+  process.env.FRONTEND_BASE_URL = "http://localhost:5173/";
+  process.env.STOCKFISH_PATH = "C:/custom/stockfish.exe";
+
+  try {
+    const { stockfishConfig } = await import(`./config.js?stockfish-override=${Date.now()}`);
+    assert.equal(stockfishConfig.enginePath, "C:/custom/stockfish.exe");
+  } finally {
+    restoreEnv("DOTENV_CONFIG_PATH", previous.DOTENV_CONFIG_PATH);
+    restoreEnv("JWT_SECRET", previous.JWT_SECRET);
+    restoreEnv("MAIL_USER", previous.MAIL_USER);
+    restoreEnv("MAIL_PASS", previous.MAIL_PASS);
+    restoreEnv("FRONTEND_BASE_URL", previous.FRONTEND_BASE_URL);
+    restoreEnv("STOCKFISH_PATH", previous.STOCKFISH_PATH);
+  }
+});
+
 function restoreEnv(name: string, value: string | undefined) {
   if (value === undefined) {
     delete process.env[name];

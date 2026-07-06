@@ -11,8 +11,19 @@ export interface RatingUpdateResponse {
   newRating: number;
 }
 
+export interface AiMoveResponse {
+  move: string;
+  requestedElo: number;
+  appliedElo: number | null;
+  appliedSkillLevel: number;
+}
+
 export function updateRating(payload: { firstPlayer: string; secondPlayer: string; winner: string }) {
   return apiClient.post<RatingUpdateResponse>("/match/update-rating", payload);
+}
+
+export function requestAiMove(payload: { fen: string; elo: number }) {
+  return apiClient.post<AiMoveResponse>("/match/ai-move", payload);
 }
 
 export function getMatchHistory(profileId?: string) {

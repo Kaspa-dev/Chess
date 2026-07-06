@@ -3,11 +3,23 @@ import { Chessboard } from "react-chessboard";
 import { Button } from "@heroui/button";
 
 import { GameBoardShell } from "@/components/game/GameBoardShell";
+import { GameSidebar } from "@/components/game/GameSidebar";
 import { GameResultBanner } from "@/components/game/GameResultBanner";
+import { useChessboardHighlights } from "@/hooks/game/useChessboardHighlights";
 import { useChessGameState } from "@/hooks/game/useChessGameState";
 
 export default function PlayRandomMoveEngine(): JSX.Element {
-  const { game, whiteWins, blackWins, stalemate, makeMove, resetGame } = useChessGameState();
+  const {
+    game,
+    whiteWins,
+    blackWins,
+    stalemate,
+    moveHistory,
+    turnLabel,
+    capturedPieces,
+    makeMove,
+    resetGame,
+  } = useChessGameState();
 
   function onDrop(sourceSquare: string, targetSquare: string): boolean {
     const piece = game.get(sourceSquare as Square);
@@ -30,12 +42,32 @@ export default function PlayRandomMoveEngine(): JSX.Element {
     return !!move;
   }
 
+  const boardHighlights = useChessboardHighlights({
+    game,
+    onMoveAttempt: onDrop,
+  });
+
   return (
     <GameBoardShell
       resultBanner={
         <GameResultBanner whiteWins={whiteWins} blackWins={blackWins} stalemate={stalemate} />
       }
-      board={<Chessboard position={game.fen()} onPieceDrop={onDrop} />}
+      board={
+        <Chessboard
+          position={game.fen()}
+          onPieceDrop={onDrop}
+          onPieceDragBegin={boardHighlights.onPieceDragBegin}
+          onSquareClick={boardHighlights.onSquareClick}
+          customSquareStyles={boardHighlights.customSquareStyles}
+        />
+      }
+      sidebar={
+        <GameSidebar
+          turnLabel={turnLabel}
+          moveHistory={moveHistory}
+          capturedPieces={capturedPieces}
+        />
+      }
       actions={
         <Button
           size="lg"

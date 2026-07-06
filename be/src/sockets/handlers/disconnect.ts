@@ -1,7 +1,12 @@
 import type { Server, Socket } from "socket.io";
 import { activeGames, pendingGames } from "../gameStore.js";
+import { finishGame } from "../finishGame.js";
 
-const handleDisconnect = (io: Server, socket: Socket): void => {
+const handleDisconnect = async (
+  io: Server,
+  socket: Socket,
+  finishGameFn: typeof finishGame = finishGame,
+): Promise<void> => {
   console.log(`Disconnected from chess: ${socket.id}`);
 
   for (const [room, pendingGame] of pendingGames) {
@@ -13,8 +18,14 @@ const handleDisconnect = (io: Server, socket: Socket): void => {
 
   for (const [room, game] of activeGames) {
     if (game.players.white === socket.id || game.players.black === socket.id) {
-      io.to(room).emit("opponentDisconnected", { message: "Opponent disconnected" });
-      activeGames.delete(room);
+      const winnerColor = game.players.white === socket.id ? "black" : "white";
+      await finishGameFn({
+        room,
+        game,
+        io,
+        message: `${winnerColor} wins!`,
+        winnerColor,
+      });
       console.log(`Ended game in room ${room} due to disconnection`);
       break;
     }

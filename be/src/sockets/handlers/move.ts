@@ -1,6 +1,6 @@
 import type { Server, Socket } from "socket.io";
-import { saveMatchData, updateRating } from "../../services/game.js";
 import { activeGames } from "../gameStore.js";
+import { finishGame } from "../finishGame.js";
 
 const handleMove = (
   io: Server,
@@ -39,56 +39,26 @@ const handleMove = (
 
     if (game.chess.isCheckmate()) {
       const winner = game.chess.turn() === "w" ? "black" : "white";
-      const winnerEmail = game.userEmails[winner];
 
       console.log(`Checkmate! ${winner} wins in room ${room}`);
-      io.to(room).emit("gameOver", {
+      void finishGame({
+        room,
+        game,
+        io,
         message: `${winner} wins!`,
-        winnerEmail,
+        winnerColor: winner,
       });
-
-      void (async () => {
-        try {
-          const result = await updateRating({
-            firstPlayer: game.userEmails.white,
-            secondPlayer: game.userEmails.black,
-            winner: game.userEmails[winner],
-          });
-          console.log("Rating update result: " + result?.message);
-        } catch (error) {
-          console.error("Error:", error);
-        }
-      })();
-
-      if (game.userEmails.white && game.userEmails.black) {
-        void saveMatchData(
-          game.userEmails.white,
-          game.userEmails.black,
-          winnerEmail,
-          new Date(),
-          room,
-        );
-      }
-
-      activeGames.delete(room);
       return;
     }
 
     if (game.chess.isStalemate()) {
       console.log(`Draw in room ${room}`);
-      io.to(room).emit("gameOver", { message: "Draw!" });
-
-      if (game.userEmails.white && game.userEmails.black) {
-        void saveMatchData(
-          game.userEmails.white,
-          game.userEmails.black,
-          null,
-          new Date(),
-          room,
-        );
-      }
-
-      activeGames.delete(room);
+      void finishGame({
+        room,
+        game,
+        io,
+        message: "Draw!",
+      });
     }
   } catch (error) {
     console.error(`Invalid move in room ${room}: ${JSON.stringify(move)}`, error);
